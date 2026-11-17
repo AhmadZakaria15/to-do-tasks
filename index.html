@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily Streaks</title>
+<style>
+:root{--bg:#eef5ff;--card:#fff;--text:#0f2747;--muted:#5b7396;--blue:#1d6ff2;--blue-d:#154fb5;--soft:#dbe9ff;--line:#cfe0fa;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a1730;--card:#112447;--text:#e6efff;--muted:#8fa8cf;--blue:#4b93ff;--blue-d:#2f78e6;--soft:#183463;--line:#23407a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0a1730;--card:#112447;--text:#e6efff;--muted:#8fa8cf;--blue:#4b93ff;--blue-d:#2f78e6;--soft:#183463;--line:#23407a;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+main{max-width:560px;margin:0 auto;padding:24px 16px 48px}
+h1{margin:0 0 4px;font-size:1.7rem;color:var(--blue)}
+.sub{color:var(--muted);margin:0 0 20px}
+.hero{background:linear-gradient(135deg,var(--blue),var(--blue-d));color:#fff;border-radius:20px;padding:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.hero .big{font-size:2.8rem;font-weight:800;line-height:1}
+.hero small{opacity:.85;display:block;margin-top:4px}
+.bar{height:8px;background:rgba(255,255,255,.3);border-radius:99px;overflow:hidden;margin-top:10px;width:170px;max-width:100%}
+.bar i{display:block;height:100%;background:#fff;width:0;transition:width .3s}
+.add{display:flex;gap:8px;margin-bottom:16px}
+input{flex:1;min-width:0;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);font-size:1rem}
+input:focus{outline:2px solid var(--blue);border-color:transparent}
+button{cursor:pointer;font:inherit}
+.btn{background:var(--blue);color:#fff;border:0;border-radius:12px;padding:0 18px;font-weight:600}
+.btn:hover{background:var(--blue-d)}
+ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+li{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px}
+.chk{width:30px;height:30px;border-radius:50%;border:2px solid var(--blue);background:transparent;color:#fff;font-size:1rem;flex:none;display:grid;place-items:center}
+li.done .chk{background:var(--blue)}
+li.done .name{text-decoration:line-through;color:var(--muted)}
+.name{flex:1;min-width:0;overflow-wrap:anywhere}
+.meta{font-size:.78rem;color:var(--muted);margin-top:2px}
+.streak{background:var(--soft);color:var(--blue);font-weight:700;border-radius:99px;padding:4px 10px;font-size:.85rem;white-space:nowrap}
+.del{background:none;border:0;color:var(--muted);font-size:1.2rem;padding:4px}
+.del:hover{color:#d33}
+.empty{text-align:center;color:var(--muted);padding:28px 0}
+footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:22px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Daily Streaks</h1>
+  <p class="sub" id="today"></p>
+  <section class="hero">
+    <div><div class="big"><span id="overall">0</span> 🔥</div><small>day streak · every task done</small></div>
+    <div style="text-align:right"><div id="prog" style="font-weight:700"></div><div class="bar"><i id="fill"></i></div></div>
+  </section>
+  <div class="add">
+    <input id="in" placeholder="Add a daily task…" maxlength="80" autocomplete="off">
+    <button class="btn" id="addBtn">Add</button>
+  </div>
+  <ul id="list"></ul>
+  <footer>Tasks reset every day. Miss a day and that task’s streak starts over.</footer>
+</main>
+<script>
+(function(){
+  var KEY="daily-streaks-v1", tasks=[];
+  try{var s=localStorage.getItem(KEY); if(s) tasks=JSON.parse(s)||[];}catch(e){tasks=[];}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(tasks));}catch(e){}}
+  function ds(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+  function back(n){var d=new Date();d.setDate(d.getDate()-n);return ds(d);}
+  function streakOf(has){ // has(dateStr) -> bool
+    var i=has(back(0))?0:1,n=0;
+    while(has(back(i))&&n<4000){n++;i++;}
+    return n;
+  }
+  function taskStreak(t){return streakOf(function(d){return t.done.indexOf(d)>-1;});}
+  function overall(){
+    if(!tasks.length) return 0;
+    return streakOf(function(d){return tasks.every(function(t){return t.done.indexOf(d)>-1;});});
+  }
+  var $=function(id){return document.getElementById(id);};
+  var lastDay=back(0);
+  function render(){
+    var td=back(0);
+    $("today").textContent=new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+    var list=$("list"); list.innerHTML="";
+    if(!tasks.length){list.innerHTML='<div class="empty">No tasks yet. Add one above to start a streak.</div>';}
+    tasks.forEach(function(t){
+      var done=t.done.indexOf(td)>-1, st=taskStreak(t);
+      var li=document.createElement("li"); if(done) li.className="done";
+      var c=document.createElement("button"); c.className="chk"; c.textContent=done?"✓":""; c.setAttribute("aria-label","Toggle "+t.name);
+      c.onclick=function(){toggle(t.id);};
+      var m=document.createElement("div"); m.className="name";
+      var nm=document.createElement("div"); nm.textContent=t.name;
+      var mt=document.createElement("div"); mt.className="meta"; mt.textContent="Best: "+bestOf(t)+" days";
+      m.appendChild(nm); m.appendChild(mt);
+      var sb=document.createElement("span"); sb.className="streak"; sb.textContent="🔥 "+st;
+      var x=document.createElement("button"); x.className="del"; x.textContent="×"; x.setAttribute("aria-label","Delete "+t.name);
+      x.onclick=function(){ if(confirm("Delete “"+t.name+"”?")){tasks=tasks.filter(function(k){return k.id!==t.id;});save();render();} };
+      li.appendChild(c); li.appendChild(m); li.appendChild(sb); li.appendChild(x);
+      list.appendChild(li);
+    });
+    var d=tasks.filter(function(t){return t.done.indexOf(td)>-1;}).length;
+    $("prog").textContent=d+" / "+tasks.length+" today";
+    $("fill").style.width=(tasks.length?d/tasks.length*100:0)+"%";
+    $("overall").textContent=overall();
+  }
+  function bestOf(t){
+    var a=t.done.slice().sort(),b=0,r=0,prev=null;
+    a.forEach(function(d){
+      if(prev){var p=new Date(prev+"T00:00:00");p.setDate(p.getDate()+1);r=(ds(p)===d)?r+1:1;}else r=1;
+      if(r>b)b=r; prev=d;
+    });
+    return b;
+  }
+  function toggle(id){
+    var td=back(0);
+    tasks.forEach(function(t){ if(t.id===id){
+      var i=t.done.indexOf(td);
+      if(i>-1) t.done.splice(i,1); else t.done.push(td);
+    }});
+    save(); render();
+  }
+  function add(){
+    var v=$("in").value.trim(); if(!v) return;
+    tasks.push({id:Date.now()+Math.random().toString(36).slice(2,6),name:v,done:[]});
+    $("in").value=""; save(); render();
+  }
+  $("addBtn").onclick=add;
+  $("in").addEventListener("keydown",function(e){if(e.key==="Enter")add();});
+  setInterval(function(){ if(back(0)!==lastDay){lastDay=back(0);render();} },30000);
+  render();
+})();
+</script>
+</body>
+</html>
