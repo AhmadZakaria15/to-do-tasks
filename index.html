@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily Streaks</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <h1>Daily Streaks</h1>
+  <p class="sub" id="today"></p>
+  <section class="hero">
+    <div><div class="big"><span id="overall">0</span> 🔥</div><small>day streak · every task done</small></div>
+    <div style="text-align:right"><div id="prog" style="font-weight:700"></div><div class="bar"><i id="fill"></i></div></div>
+  </section>
+  <div class="add">
+    <input id="in" placeholder="Add a daily task…" maxlength="80" autocomplete="off">
+    <button class="btn" id="addBtn">Add</button>
+  </div>
+  <ul id="list"></ul>
+  <footer>Tasks reset every day. Miss a day and that task’s streak starts over.</footer>
+</main>
+<script src="script,js"></script>
+</body>
+</html>
